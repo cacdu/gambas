@@ -1,0 +1,21 @@
+[package]
+name = "gambas"
+version = "0.1.0"
+edition = "2021"
+description = "A distributed pixel canvas — every replica is a Raft node"
+
+[dependencies]
+raft-kv = { path = "../raft-kv/crates/raft-kv" }
+
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.8", features = ["ws"] }
+tower-http = { version = "0.6", features = ["fs", "trace"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+prometheus = "0.13"
+# Internal node-to-node forwarding only (plain HTTP), hence no TLS features.
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
