@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      # gambas depends on ../raft-kv by path — clone them side by side.
+      - uses: actions/checkout@v4
+        with:
+          path: gambas
+
+      - uses: actions/checkout@v4
+        with:
+          repository: cacdu/raft-kv
+          path: raft-kv
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install protoc
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            gambas/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('gambas/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Build
+        working-directory: gambas
+        run: cargo build
+
+      - name: Test
+        working-directory: gambas
+        run: cargo test
+
+      - name: Clippy
+        working-directory: gambas
+        run: cargo clippy -- -D warnings
+
+      - name: Format
+        working-directory: gambas
+        run: cargo fmt --check
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
