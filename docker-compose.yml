@@ -1,0 +1,51 @@
+# 3-replica gambas cluster behind nginx. Only the LB (port 8080) is exposed —
+# the nodes trust the internal forwarding header, so they must stay private.
+x-gambas: &gambas
+  build:
+    context: ..
+    dockerfile: gambas/Dockerfile
+  restart: unless-stopped
+  environment:
+    RUST_LOG: gambas=info,raft_kv=info
+
+services:
+  gambas1:
+    <<: *gambas
+    command: >
+      --id 1 --raft-addr 0.0.0.0:7001 --http-addr 0.0.0.0:8080
+      --peer 2=gambas2:7001 --peer 3=gambas3:7001
+      --app-peer 2=gambas2:8080 --app-peer 3=gambas3:8080
+      --data-dir /data --behind-proxy
+    volumes: [gambas1-data:/data]
+
+  gambas2:
+    <<: *gambas
+    command: >
+      --id 2 --raft-addr 0.0.0.0:7001 --http-addr 0.0.0.0:8080
+      --peer 1=gambas1:7001 --peer 3=gambas3:7001
+      --app-peer 1=gambas1:8080 --app-peer 3=gambas3:8080
+      --data-dir /data --behind-proxy
+    volumes: [gambas2-data:/data]
+
+  gambas3:
+    <<: *gambas
+    command: >
+      --id 3 --raft-addr 0.0.0.0:7001 --http-addr 0.0.0.0:8080
+      --peer 1=gambas1:7001 --peer 2=gambas2:7001
+      --app-peer 1=gambas1:8080 --app-peer 2=gambas2:8080
+      --data-dir /data --behind-proxy
+    volumes: [gambas3-data:/data]
+
+  lb:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [gambas1, gambas2, gambas3]
+    restart: unless-stopped
+
+volumes:
+  gambas1-data:
+  gambas2-data:
+  gambas3-data:
