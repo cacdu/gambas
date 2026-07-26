@@ -3,6 +3,8 @@ name = "gambas"
 version = "0.1.0"
 edition = "2021"
 description = "A distributed pixel canvas — every replica is a Raft node"
+license = "MIT"
+repository = "https://github.com/cacdu/gambas"
 
 [dependencies]
 raft-kv = { path = "../raft-kv/crates/raft-kv" }
