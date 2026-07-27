@@ -7,7 +7,7 @@ license = "MIT"
 repository = "https://github.com/cacdu/gambas"
 
 [dependencies]
-raft-kv = { path = "../raft-kv/crates/raft-kv" }
+raft-kv = { git = "https://github.com/cacdu/raft-kv", tag = "v0.1.1" }
 
 tokio = { version = "1", features = ["full"] }
 axum = { version = "0.8", features = ["ws"] }
