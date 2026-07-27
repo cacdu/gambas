@@ -1,9 +1,7 @@
 # 3-replica gambas cluster behind nginx. Only the LB (port 8080) is exposed —
 # the nodes trust the internal forwarding header, so they must stay private.
 x-gambas: &gambas
-  build:
-    context: ..
-    dockerfile: gambas/Dockerfile
+  build: .
   restart: unless-stopped
   environment:
     RUST_LOG: gambas=info,raft_kv=info

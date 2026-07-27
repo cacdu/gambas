@@ -15,15 +15,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      # gambas depends on ../raft-kv by path — clone them side by side.
       - uses: actions/checkout@v4
-        with:
-          path: gambas
-
-      - uses: actions/checkout@v4
-        with:
-          repository: cacdu/raft-kv
-          path: raft-kv
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -39,24 +31,20 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            gambas/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('gambas/Cargo.lock') }}
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
       - name: Build
-        working-directory: gambas
-        run: cargo build
+        run: cargo build --locked
 
       - name: Test
-        working-directory: gambas
-        run: cargo test
+        run: cargo test --locked
 
       - name: Clippy
-        working-directory: gambas
         run: cargo clippy -- -D warnings
 
       - name: Format
-        working-directory: gambas
         run: cargo fmt --check
 
   frontend:

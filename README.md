@@ -69,8 +69,6 @@ server → client (binary):
 **Docker (the full 3-node cluster + LB):**
 
 ```bash
-# gambas and raft-kv must be cloned side by side (path dependency)
-git clone https://github.com/cacdu/raft-kv
 git clone https://github.com/cacdu/gambas
 cd gambas
 docker compose up --build -d      # → http://localhost:8080
