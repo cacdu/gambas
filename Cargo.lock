@@ -1130,8 +1130,8 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 
 [[package]]
 name = "raft"
-version = "0.1.1"
-source = "git+https://github.com/cacdu/raft-kv?tag=v0.1.1#8fb0ec60ccfbff3bb0e9c8957db74634bcf656c9"
+version = "0.1.2"
+source = "git+https://github.com/cacdu/raft-kv?tag=v0.1.2#5b01591be09cd91239aac97d5fc412fa6a3c2afc"
 dependencies = [
  "rand 0.9.4",
  "serde",
@@ -1142,8 +1142,8 @@ dependencies = [
 
 [[package]]
 name = "raft-kv"
-version = "0.1.1"
-source = "git+https://github.com/cacdu/raft-kv?tag=v0.1.1#8fb0ec60ccfbff3bb0e9c8957db74634bcf656c9"
+version = "0.1.2"
+source = "git+https://github.com/cacdu/raft-kv?tag=v0.1.2#5b01591be09cd91239aac97d5fc412fa6a3c2afc"
 dependencies = [
  "anyhow",
  "axum 0.8.9",
@@ -1460,8 +1460,8 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "storage"
-version = "0.1.1"
-source = "git+https://github.com/cacdu/raft-kv?tag=v0.1.1#8fb0ec60ccfbff3bb0e9c8957db74634bcf656c9"
+version = "0.1.2"
+source = "git+https://github.com/cacdu/raft-kv?tag=v0.1.2#5b01591be09cd91239aac97d5fc412fa6a3c2afc"
 dependencies = [
  "bytes",
  "crc32fast",

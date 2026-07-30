@@ -68,6 +68,16 @@ struct Config {
     /// `openssl rand -hex 32`.
     #[arg(long, env = "GAMBAS_INTERNAL_SECRET")]
     internal_secret: Option<String>,
+
+    /// Raft election timeout in ms (10ms granularity). Raise it well above the
+    /// inter-node round-trip time on a WAN to avoid spurious elections.
+    #[arg(long, default_value_t = 100)]
+    election_timeout_ms: u32,
+
+    /// Raft heartbeat interval in ms (10ms granularity). Must stay well below
+    /// the election timeout.
+    #[arg(long, default_value_t = 30)]
+    heartbeat_timeout_ms: u32,
 }
 
 #[tokio::main]
@@ -92,6 +102,15 @@ async fn main() -> Result<()> {
         );
     }
 
+    // A heartbeat at or above the election timeout guarantees flapping.
+    if cfg.heartbeat_timeout_ms >= cfg.election_timeout_ms {
+        anyhow::bail!(
+            "--heartbeat-timeout-ms ({}) must stay well below --election-timeout-ms ({})",
+            cfg.heartbeat_timeout_ms,
+            cfg.election_timeout_ms
+        );
+    }
+
     let node = RaftKv::start(RaftKvOptions {
         id: cfg.id,
         raft_addr: cfg.raft_addr.clone(),
@@ -99,6 +118,9 @@ async fn main() -> Result<()> {
         app_addrs: cfg.app_peers.iter().cloned().collect::<HashMap<_, _>>(),
         data_dir: cfg.data_dir.clone(),
         learner: false,
+        // raft-kv ticks every 10ms; convert the ms knobs to ticks.
+        election_timeout: cfg.election_timeout_ms / 10,
+        heartbeat_timeout: cfg.heartbeat_timeout_ms / 10,
     })
     .await?;
 
