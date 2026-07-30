@@ -62,6 +62,12 @@ struct Config {
     /// Directory with the built frontend.
     #[arg(long, default_value = "web/dist")]
     static_dir: PathBuf,
+
+    /// Shared secret authenticating node-to-node forwarded writes. Required
+    /// once --peer is set; same value on every node. Generate with
+    /// `openssl rand -hex 32`.
+    #[arg(long, env = "GAMBAS_INTERNAL_SECRET")]
+    internal_secret: Option<String>,
 }
 
 #[tokio::main]
@@ -76,6 +82,15 @@ async fn main() -> Result<()> {
 
     let cfg = Config::parse();
     info!(id = cfg.id, raft = %cfg.raft_addr, http = %cfg.http_addr, "starting gambas node");
+
+    // A clustered node forwards writes to the leader and must authenticate them,
+    // otherwise the internal header is trusted on presence alone (spoofable).
+    if !cfg.peers.is_empty() && cfg.internal_secret.is_none() {
+        anyhow::bail!(
+            "--internal-secret (env GAMBAS_INTERNAL_SECRET) is required when \
+             --peer is set: use the same value on every node"
+        );
+    }
 
     let node = RaftKv::start(RaftKvOptions {
         id: cfg.id,
@@ -94,6 +109,7 @@ async fn main() -> Result<()> {
         ))),
         behind_proxy: cfg.behind_proxy,
         trusted_ip_header: cfg.trusted_ip_header.clone().into(),
+        internal_secret: cfg.internal_secret.clone().map(Arc::<str>::from),
         http_client: reqwest::Client::new(),
     };
     let app = http::router(state, cfg.static_dir.clone());
