@@ -50,9 +50,14 @@ struct Config {
     #[arg(long, default_value_t = 5)]
     cooldown_secs: u64,
 
-    /// Trust X-Forwarded-For for client IPs (set when behind the LB).
+    /// Trust the configured client-IP header (set when behind the LB).
     #[arg(long, default_value_t = false)]
     behind_proxy: bool,
+
+    /// Header carrying the real client IP when behind a proxy. Default
+    /// x-forwarded-for (nginx); set to fly-client-ip on Fly.io.
+    #[arg(long, default_value = "x-forwarded-for")]
+    trusted_ip_header: String,
 
     /// Directory with the built frontend.
     #[arg(long, default_value = "web/dist")]
@@ -88,6 +93,7 @@ async fn main() -> Result<()> {
             cfg.cooldown_secs,
         ))),
         behind_proxy: cfg.behind_proxy,
+        trusted_ip_header: cfg.trusted_ip_header.clone().into(),
         http_client: reqwest::Client::new(),
     };
     let app = http::router(state, cfg.static_dir.clone());

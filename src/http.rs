@@ -40,6 +40,9 @@ pub struct AppState {
     pub node: RaftKv,
     pub cooldown: Arc<Cooldown>,
     pub behind_proxy: bool,
+    /// Header to read the real client IP from when `behind_proxy` (e.g.
+    /// `x-forwarded-for` behind nginx, `fly-client-ip` behind Fly's proxy).
+    pub trusted_ip_header: Arc<str>,
     pub http_client: reqwest::Client,
 }
 
@@ -81,7 +84,7 @@ async fn paint(
 
     // Forwarded writes were already charged a cooldown slot by the edge node.
     let internal = headers.contains_key(INTERNAL_HEADER);
-    let ip = client_ip(&headers, peer, s.behind_proxy);
+    let ip = client_ip(&headers, peer, s.behind_proxy, &s.trusted_ip_header);
     if !internal {
         if let Err(wait) = s.cooldown.try_claim(ip) {
             metrics::PAINT_REJECTED
@@ -171,7 +174,7 @@ async fn status(
     headers: HeaderMap,
 ) -> Json<serde_json::Value> {
     let raft = s.node.status().await;
-    let ip = client_ip(&headers, peer, s.behind_proxy);
+    let ip = client_ip(&headers, peer, s.behind_proxy, &s.trusted_ip_header);
     let remaining_ms = s.cooldown.remaining(ip).map(|d| d.as_millis() as u64);
     Json(json!({
         "node_id": raft.id,
@@ -204,12 +207,17 @@ async fn metrics_handler() -> Response {
     }
 }
 
-/// Client IP for rate limiting: first X-Forwarded-For hop when running behind
-/// the LB (which overwrites the header), the socket peer otherwise.
-fn client_ip(headers: &HeaderMap, peer: SocketAddr, behind_proxy: bool) -> IpAddr {
+/// Client IP for rate limiting: the first hop of the configured trusted header
+/// when running behind the LB, the socket peer otherwise.
+///
+/// The header MUST be one the proxy sets itself and a client cannot forge past
+/// it. Behind nginx that's `x-forwarded-for` (overwritten with `$remote_addr`);
+/// behind Fly's proxy — which *appends* to a client-supplied XFF — it must be
+/// `fly-client-ip`, which Fly sets to the real peer.
+fn client_ip(headers: &HeaderMap, peer: SocketAddr, behind_proxy: bool, header: &str) -> IpAddr {
     if behind_proxy {
         if let Some(ip) = headers
-            .get("x-forwarded-for")
+            .get(header)
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.split(',').next())
             .and_then(|v| v.trim().parse().ok())
@@ -232,7 +240,7 @@ mod tests {
     fn client_ip_uses_peer_when_not_behind_proxy() {
         let mut headers = HeaderMap::new();
         headers.insert("x-forwarded-for", "1.2.3.4".parse().unwrap());
-        let ip = client_ip(&headers, peer(), false);
+        let ip = client_ip(&headers, peer(), false, "x-forwarded-for");
         assert_eq!(ip, "192.168.1.9".parse::<IpAddr>().unwrap());
     }
 
@@ -240,7 +248,7 @@ mod tests {
     fn client_ip_takes_first_forwarded_hop() {
         let mut headers = HeaderMap::new();
         headers.insert("x-forwarded-for", "1.2.3.4, 10.0.0.1".parse().unwrap());
-        let ip = client_ip(&headers, peer(), true);
+        let ip = client_ip(&headers, peer(), true, "x-forwarded-for");
         assert_eq!(ip, "1.2.3.4".parse::<IpAddr>().unwrap());
     }
 
@@ -248,7 +256,17 @@ mod tests {
     fn client_ip_falls_back_on_garbage_header() {
         let mut headers = HeaderMap::new();
         headers.insert("x-forwarded-for", "not-an-ip".parse().unwrap());
-        let ip = client_ip(&headers, peer(), true);
+        let ip = client_ip(&headers, peer(), true, "x-forwarded-for");
         assert_eq!(ip, "192.168.1.9".parse::<IpAddr>().unwrap());
+    }
+
+    #[test]
+    fn client_ip_reads_the_configured_header_only() {
+        let mut headers = HeaderMap::new();
+        // A spoofed XFF is ignored when the trusted header is fly-client-ip...
+        headers.insert("x-forwarded-for", "1.2.3.4".parse().unwrap());
+        headers.insert("fly-client-ip", "203.0.113.7".parse().unwrap());
+        let ip = client_ip(&headers, peer(), true, "fly-client-ip");
+        assert_eq!(ip, "203.0.113.7".parse::<IpAddr>().unwrap());
     }
 }
