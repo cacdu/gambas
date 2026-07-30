@@ -50,13 +50,34 @@ struct Config {
     #[arg(long, default_value_t = 5)]
     cooldown_secs: u64,
 
-    /// Trust X-Forwarded-For for client IPs (set when behind the LB).
+    /// Trust the configured client-IP header (set when behind the LB).
     #[arg(long, default_value_t = false)]
     behind_proxy: bool,
+
+    /// Header carrying the real client IP when behind a proxy. Default
+    /// x-forwarded-for (nginx); set to fly-client-ip on Fly.io.
+    #[arg(long, default_value = "x-forwarded-for")]
+    trusted_ip_header: String,
 
     /// Directory with the built frontend.
     #[arg(long, default_value = "web/dist")]
     static_dir: PathBuf,
+
+    /// Shared secret authenticating node-to-node forwarded writes. Required
+    /// once --peer is set; same value on every node. Generate with
+    /// `openssl rand -hex 32`.
+    #[arg(long, env = "GAMBAS_INTERNAL_SECRET")]
+    internal_secret: Option<String>,
+
+    /// Raft election timeout in ms (10ms granularity). Raise it well above the
+    /// inter-node round-trip time on a WAN to avoid spurious elections.
+    #[arg(long, default_value_t = 100)]
+    election_timeout_ms: u32,
+
+    /// Raft heartbeat interval in ms (10ms granularity). Must stay well below
+    /// the election timeout.
+    #[arg(long, default_value_t = 30)]
+    heartbeat_timeout_ms: u32,
 }
 
 #[tokio::main]
@@ -72,6 +93,24 @@ async fn main() -> Result<()> {
     let cfg = Config::parse();
     info!(id = cfg.id, raft = %cfg.raft_addr, http = %cfg.http_addr, "starting gambas node");
 
+    // A clustered node forwards writes to the leader and must authenticate them,
+    // otherwise the internal header is trusted on presence alone (spoofable).
+    if !cfg.peers.is_empty() && cfg.internal_secret.is_none() {
+        anyhow::bail!(
+            "--internal-secret (env GAMBAS_INTERNAL_SECRET) is required when \
+             --peer is set: use the same value on every node"
+        );
+    }
+
+    // A heartbeat at or above the election timeout guarantees flapping.
+    if cfg.heartbeat_timeout_ms >= cfg.election_timeout_ms {
+        anyhow::bail!(
+            "--heartbeat-timeout-ms ({}) must stay well below --election-timeout-ms ({})",
+            cfg.heartbeat_timeout_ms,
+            cfg.election_timeout_ms
+        );
+    }
+
     let node = RaftKv::start(RaftKvOptions {
         id: cfg.id,
         raft_addr: cfg.raft_addr.clone(),
@@ -79,6 +118,9 @@ async fn main() -> Result<()> {
         app_addrs: cfg.app_peers.iter().cloned().collect::<HashMap<_, _>>(),
         data_dir: cfg.data_dir.clone(),
         learner: false,
+        // raft-kv ticks every 10ms; convert the ms knobs to ticks.
+        election_timeout: cfg.election_timeout_ms / 10,
+        heartbeat_timeout: cfg.heartbeat_timeout_ms / 10,
     })
     .await?;
 
@@ -88,6 +130,8 @@ async fn main() -> Result<()> {
             cfg.cooldown_secs,
         ))),
         behind_proxy: cfg.behind_proxy,
+        trusted_ip_header: cfg.trusted_ip_header.clone().into(),
+        internal_secret: cfg.internal_secret.clone().map(Arc::<str>::from),
         http_client: reqwest::Client::new(),
     };
     let app = http::router(state, cfg.static_dir.clone());

@@ -1,10 +1,12 @@
 # 3-replica gambas cluster behind nginx. Only the LB (port 8080) is exposed —
-# the nodes trust the internal forwarding header, so they must stay private.
+# the nodes authenticate internal leader-forwards with a shared secret and must
+# stay private. Override GAMBAS_INTERNAL_SECRET for anything but local dev.
 x-gambas: &gambas
   build: .
   restart: unless-stopped
   environment:
     RUST_LOG: gambas=info,raft_kv=info
+    GAMBAS_INTERNAL_SECRET: ${GAMBAS_INTERNAL_SECRET:-dev-only-not-a-real-secret}
 
 services:
   gambas1:
