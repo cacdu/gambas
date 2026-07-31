@@ -1,0 +1,38 @@
+# Fly.io app config for gambas — a geo-distributed, strongly-consistent canvas.
+#
+# The cluster is THREE machines across THREE regions (see deploy/README once
+# bootstrapped). Each machine is a full raft node with its own volume; the
+# per-node args (--id, --peer, --app-peer, timers, --trusted-ip-header) are set
+# at bootstrap with `fly machine run/update`, NOT here — a raft node can't run
+# with the identical command on every machine. So a plain `fly deploy` does not
+# configure the cluster; use deploy/fly-deploy.sh, which only rolls the image
+# and lets Fly preserve each machine's own args.
+#
+# NOTE: flyctl's schema shifts between versions. Confirm the keys below against
+# `fly config validate` before the first bootstrap.
+
+app = "gambas"
+primary_region = "qro"          # Querétaro; the other two regions are iad + ams
+
+[build]
+  # Uses the repo Dockerfile (standalone; raft-kv pulled from its v0.1.2 git tag).
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"    # a raft cluster must never scale to zero
+  auto_start_machines = false
+  min_machines_running = 3
+
+# The WAL + snapshots live on a per-machine volume named "wal" (one per region,
+# created at bootstrap). Region-pinned, so each node keeps its own durable log.
+[mounts]
+  source = "wal"
+  destination = "/data"
+
+[env]
+  RUST_LOG = "gambas=info,raft_kv=info"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
