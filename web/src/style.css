@@ -33,6 +33,7 @@ header {
   padding: 0.6rem 1rem;
   background: var(--panel);
   border-bottom: 1px solid #000;
+  flex-shrink: 0;
 }
 
 h1 {
@@ -56,10 +57,24 @@ h1 {
   color: var(--accent);
 }
 
+/* ── main: 3-column layout ─────────────────────────────────────────────────── */
+
 main {
-  position: relative;
   flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
   overflow: hidden;
+}
+
+/* ── canvas (square, fills available height) ─────────────────────────────── */
+
+#canvas-wrap {
+  flex-shrink: 0;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
 }
 
 #canvas {
@@ -96,6 +111,139 @@ main {
   pointer-events: none;
 }
 
+/* ── side panels ─────────────────────────────────────────────────────────── */
+
+.side {
+  width: 200px;
+  flex-shrink: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-image: radial-gradient(circle, rgba(148, 224, 68, 0.09) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.panel-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 1.5rem 1rem;
+  max-width: 180px;
+}
+
+.panel-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── raft cluster svg ────────────────────────────────────────────────────── */
+
+.cluster-svg {
+  width: 96px;
+  height: 96px;
+  overflow: visible;
+}
+
+.ce {
+  stroke: #2a2c38;
+  stroke-width: 1.5;
+}
+
+.cn {
+  fill: var(--panel);
+  stroke: #3a3c4a;
+  stroke-width: 1.5;
+  transition: stroke 0.6s, fill 0.6s;
+}
+
+.cn.leader {
+  stroke: var(--accent);
+  fill: rgba(148, 224, 68, 0.1);
+}
+
+.cn-text {
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  fill: var(--muted);
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  transition: fill 0.6s;
+}
+
+.cn-text.leader {
+  fill: var(--accent);
+}
+
+.cn-you {
+  font-size: 7px;
+  font-family: ui-monospace, monospace;
+  fill: var(--text);
+  text-anchor: middle;
+  dominant-baseline: auto;
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+
+.cn-you.visible {
+  opacity: 0.7;
+}
+
+.cluster-info {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.cluster-info strong {
+  color: var(--accent);
+}
+
+/* ── right panel ─────────────────────────────────────────────────────────── */
+
+.side-description {
+  font-size: 0.68rem;
+  line-height: 1.65;
+  color: var(--muted);
+  text-align: center;
+}
+
+.tech-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.tech-tag {
+  padding: 0.18rem 0.65rem;
+  border: 1px solid #2e3040;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.gh-link {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  transition: color 0.2s;
+}
+
+.gh-link:hover {
+  color: var(--accent);
+}
+
+/* ── footer ──────────────────────────────────────────────────────────────── */
+
 footer {
   display: flex;
   flex-direction: column;
@@ -103,6 +251,7 @@ footer {
   padding: 0.6rem 1rem;
   background: var(--panel);
   border-top: 1px solid #000;
+  flex-shrink: 0;
 }
 
 .palette {
@@ -139,4 +288,19 @@ footer {
 
 .cooldown.active {
   color: var(--accent);
+}
+
+/* ── responsive: hide panels on narrow viewports ─────────────────────────── */
+
+@media (max-width: 640px) {
+  .side { display: none; }
+  main {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  #canvas-wrap {
+    width: 100%;
+    height: auto;
+    flex: 0 0 auto;
+  }
 }

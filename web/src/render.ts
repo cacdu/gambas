@@ -13,6 +13,11 @@ export class Renderer {
   offsetX = 0;
   offsetY = 0;
 
+  // Minimum zoom: the largest integer scale where the whole board fits without padding.
+  private fitScale = 2;
+  private fitOffsetX = 0;
+  private fitOffsetY = 0;
+
   hover: { x: number; y: number } | null = null;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
@@ -41,21 +46,32 @@ export class Renderer {
     this.flush();
   }
 
-  /** Center the board and pick a scale that fits the viewport. */
+  /** Center the board at the largest integer scale that fills the viewport with no extra padding. */
   fit(): void {
     const { width, height } = this.viewport();
-    this.scale = Math.max(1, Math.floor(Math.min(width, height) / SIZE));
-    this.offsetX = (width - SIZE * this.scale) / 2;
-    this.offsetY = (height - SIZE * this.scale) / 2;
+    this.fitScale = Math.max(1, Math.floor(Math.min(width, height) / SIZE));
+    this.fitOffsetX = (width - SIZE * this.fitScale) / 2;
+    this.fitOffsetY = (height - SIZE * this.fitScale) / 2;
+    this.scale = this.fitScale;
+    this.offsetX = this.fitOffsetX;
+    this.offsetY = this.fitOffsetY;
     this.draw();
   }
 
   zoomAt(screenX: number, screenY: number, factor: number): void {
-    const next = Math.min(64, Math.max(1, this.scale * factor));
-    // Keep the board point under the cursor fixed while scaling.
-    this.offsetX = screenX - ((screenX - this.offsetX) / this.scale) * next;
-    this.offsetY = screenY - ((screenY - this.offsetY) / this.scale) * next;
-    this.scale = next;
+    const raw = this.scale * factor;
+    if (raw <= this.fitScale) {
+      // Snap back to perfect fit so repeated zoom-out cycles don't drift.
+      this.scale = this.fitScale;
+      this.offsetX = this.fitOffsetX;
+      this.offsetY = this.fitOffsetY;
+    } else {
+      const next = Math.min(64, raw);
+      // Keep the board point under the cursor fixed while scaling.
+      this.offsetX = screenX - ((screenX - this.offsetX) / this.scale) * next;
+      this.offsetY = screenY - ((screenY - this.offsetY) / this.scale) * next;
+      this.scale = next;
+    }
     this.draw();
   }
 
@@ -120,6 +136,6 @@ export class Renderer {
     const dpr = window.devicePixelRatio || 1;
     this.canvas.width = this.canvas.clientWidth * dpr;
     this.canvas.height = this.canvas.clientHeight * dpr;
-    this.draw();
+    this.fit();
   }
 }
