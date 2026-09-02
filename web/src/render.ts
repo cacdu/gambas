@@ -46,15 +46,24 @@ export class Renderer {
     this.flush();
   }
 
-  /** Center the board at the largest integer scale that fills the viewport with no extra padding. */
-  fit(): void {
+  /** Recompute the fit transform for the current viewport, without applying it. */
+  private computeFit(): void {
     const { width, height } = this.viewport();
     this.fitScale = Math.max(1, Math.floor(Math.min(width, height) / SIZE));
     this.fitOffsetX = (width - SIZE * this.fitScale) / 2;
     this.fitOffsetY = (height - SIZE * this.fitScale) / 2;
+  }
+
+  private applyFit(): void {
     this.scale = this.fitScale;
     this.offsetX = this.fitOffsetX;
     this.offsetY = this.fitOffsetY;
+  }
+
+  /** Center the board at the largest integer scale that fills the viewport with no extra padding. */
+  fit(): void {
+    this.computeFit();
+    this.applyFit();
     this.draw();
   }
 
@@ -62,9 +71,7 @@ export class Renderer {
     const raw = this.scale * factor;
     if (raw <= this.fitScale) {
       // Snap back to perfect fit so repeated zoom-out cycles don't drift.
-      this.scale = this.fitScale;
-      this.offsetX = this.fitOffsetX;
-      this.offsetY = this.fitOffsetY;
+      this.applyFit();
     } else {
       const next = Math.min(64, raw);
       // Keep the board point under the cursor fixed while scaling.
@@ -136,6 +143,14 @@ export class Renderer {
     const dpr = window.devicePixelRatio || 1;
     this.canvas.width = this.canvas.clientWidth * dpr;
     this.canvas.height = this.canvas.clientHeight * dpr;
-    this.fit();
+
+    // A resize must not throw away the user's zoom/pan: only re-center when the
+    // view was already at fit, or when the new viewport leaves it below fit.
+    const wasAtFit = this.scale <= this.fitScale;
+    this.computeFit();
+    if (wasAtFit || this.scale < this.fitScale) {
+      this.applyFit();
+    }
+    this.draw();
   }
 }
