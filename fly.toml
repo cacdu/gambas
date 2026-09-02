@@ -1,7 +1,10 @@
-# Fly.io app config for gambas — a geo-distributed, strongly-consistent canvas.
+# Fly.io app config for gambas — a replicated, strongly-consistent pixel canvas.
 #
-# The cluster is THREE machines across THREE regions (see deploy/README once
-# bootstrapped). Each machine is a full raft node with its own volume; the
+# The cluster is THREE machines in ONE region (see deploy/README once
+# bootstrapped). Raft ticks every 10ms and a commit costs one round trip, so a
+# single region keeps writes at ~2ms with the default 100ms election timeout;
+# spreading across continents would force that timeout ~15x higher.
+# Each machine is a full raft node with its own volume; the
 # per-node args (--id, --peer, --app-peer, timers, --trusted-ip-header) are set
 # at bootstrap with `fly machine run/update`, NOT here — a raft node can't run
 # with the identical command on every machine. So a plain `fly deploy` does not
@@ -12,7 +15,7 @@
 # `fly config validate` before the first bootstrap.
 
 app = "gambas"
-primary_region = "qro"          # Querétaro; the other two regions are iad + ams
+primary_region = "dfw"          # Dallas — closest region to MX; Fly has no qro
 
 [build]
   # Uses the repo Dockerfile (standalone; raft-kv pulled from its v0.1.2 git tag).
