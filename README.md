@@ -81,14 +81,25 @@ docker compose kill gambas3       # if 3 is the leader: re-election < 1s
 docker compose start gambas3      # rejoins and catches up from the leader
 ```
 
-**Local dev (three terminals + Vite):**
+**Frontend hot-reload (against the Docker cluster):**
+
+```bash
+docker compose up --build -d           # cluster + LB on :8080
+cd web && npm install && npm run dev   # Vite on :5173, /api and /ws proxied to the LB
+```
+
+Edits under `web/` show up immediately — no image rebuild needed.
+
+**Local dev without Docker (three terminals):**
 
 ```bash
 make node1   # terminal 1 — http://127.0.0.1:8081
 make node2   # terminal 2
 make node3   # terminal 3
-cd web && npm install && npm run dev   # hot-reload frontend proxied to node 1
 ```
+
+Vite's proxy targets `:8080` (`web/vite.config.ts`); point it at `:8081` to run the
+dev server against `make node1` instead of the Docker LB.
 
 ## HTTP API
 
