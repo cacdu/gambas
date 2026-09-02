@@ -4,13 +4,18 @@ import { Renderer } from "./render";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 
-// Keep canvas-wrap perfectly square (height of main), independent of flex/aspect-ratio quirks.
+// Keep canvas-wrap perfectly square, independent of flex/aspect-ratio quirks. The
+// side panels are laid out by CSS (and hidden by the media query on narrow
+// viewports), so measuring them here keeps the breakpoint in one place: when they
+// are hidden their offsetWidth is 0 and the square grows to the full width.
 const canvasWrap = document.getElementById("canvas-wrap") as HTMLDivElement;
 const mainEl = canvasWrap.parentElement as HTMLElement;
+const sideEls = Array.from(document.querySelectorAll<HTMLElement>("main > .side"));
 function sizeCanvasWrap() {
-  const h = mainEl.clientHeight;
-  canvasWrap.style.width = h + "px";
-  canvasWrap.style.height = h + "px";
+  const sides = sideEls.reduce((sum, el) => sum + el.offsetWidth, 0);
+  const size = Math.max(0, Math.min(mainEl.clientHeight, mainEl.clientWidth - sides));
+  canvasWrap.style.width = size + "px";
+  canvasWrap.style.height = size + "px";
 }
 new ResizeObserver(sizeCanvasWrap).observe(mainEl);
 sizeCanvasWrap(); // size before Renderer reads clientWidth

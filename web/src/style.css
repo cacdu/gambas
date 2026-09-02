@@ -292,15 +292,12 @@ footer {
 
 /* ── responsive: hide panels on narrow viewports ─────────────────────────── */
 
+/* #canvas-wrap is sized in JS (see sizeCanvasWrap in main.ts), which measures the
+   panels: hiding them here is what lets the canvas take the full width. */
 @media (max-width: 640px) {
   .side { display: none; }
   main {
     flex-direction: column;
     align-items: stretch;
-  }
-  #canvas-wrap {
-    width: 100%;
-    height: auto;
-    flex: 0 0 auto;
   }
 }
