@@ -14,9 +14,10 @@
 #
 # Requires: FLY_API_TOKEN in the environment, `fly` (flyctl) and `jq` on PATH.
 #
-# NOTE: flyctl flags drift between versions. Confirm `fly deploy --build-only`,
-# `--image-label`, and `fly machine update --image` against `fly help` before
-# relying on this in CI.
+# Verified against flyctl 0.4.91: `fly deploy --build-only --push --image-label`
+# and `fly machine update --image --yes` all exist and behave as used here.
+# Note that `fly machine update` takes NO trailing args after `--`; anything that
+# needs to change a node's command must go through --command as one string.
 
 set -euo pipefail
 
