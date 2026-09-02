@@ -91,6 +91,37 @@ curl -H 'X-Forwarded-For: 1.2.3.4' ...  # nodes read fly-client-ip, not XFF
   glibc prefer IPv6 while there is no default IPv6 route, so API calls fail
   intermittently. Fix with `precedence ::ffff:0:0/96  100` in `/etc/gai.conf`.
 
+## Custom domain
+
+`gambas.cacdu.dev` points at the app with A/AAAA records (Cloudflare, DNS-only —
+the orange cloud would put another proxy in front of Fly's).
+
+Getting the certificate issued needs one extra record, and the reason is worth
+knowing. Fly's proxy normally intercepts `/.well-known/acme-challenge/` so
+Let's Encrypt can validate over HTTP-01. It does not do that here: the machines
+were configured by hand with `--port 80:8080/tcp:http`, which sends the whole of
+port 80 straight to the app, and the app answers every unknown path with
+`index.html`. Let's Encrypt asked for a token and got 3237 bytes of HTML, so
+HTTP-01 could never succeed.
+
+The fix is to validate over DNS instead, which bypasses the app entirely:
+
+```
+CNAME _acme-challenge.gambas.cacdu.dev → gambas.cacdu.dev.<id>.flydns.net.
+```
+
+That delegates just the validation record to Fly's nameservers so Fly can publish
+the token itself. Get the exact target from `fly certs setup <hostname>`.
+
+If a certificate was already added before the CNAME existed, it can sit stuck —
+`fly certs list` reporting `Issued` while `fly certs check` reports
+`Not verified`, with no token published at the flydns target. Remove it and add
+it again to force a fresh ACME order.
+
+Note that port 80 currently serves plain HTTP without redirecting. `force_https`
+in fly.toml only applies to machines created by `fly deploy`; machines built with
+explicit `--port` flags do not inherit it.
+
 ## Teardown
 
 ```bash
