@@ -2,3 +2,6 @@
 /data
 web/node_modules
 web/dist
+# docker-compose reads GAMBAS_INTERNAL_SECRET from here; never commit it
+.env
+.env.*
