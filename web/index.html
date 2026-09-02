@@ -15,9 +15,46 @@
     </header>
 
     <main>
-      <canvas id="canvas"></canvas>
-      <div id="coords" class="coords"></div>
-      <div id="toast" class="toast" hidden></div>
+      <aside class="side side-left">
+        <div class="panel-inner">
+          <span class="panel-label">raft cluster</span>
+          <svg id="cluster-svg" class="cluster-svg" viewBox="0 0 120 125" xmlns="http://www.w3.org/2000/svg">
+            <line class="ce" x1="60" y1="28" x2="20" y2="103"/>
+            <line class="ce" x1="60" y1="28" x2="100" y2="103"/>
+            <line class="ce" x1="20" y1="103" x2="100" y2="103"/>
+            <circle class="cn" id="cn-1" cx="60" cy="28" r="13"/>
+            <circle class="cn" id="cn-2" cx="20" cy="103" r="13"/>
+            <circle class="cn" id="cn-3" cx="100" cy="103" r="13"/>
+            <text class="cn-you" id="cn-you-1" x="60" y="10">you</text>
+            <text class="cn-you" id="cn-you-2" x="20" y="85">you</text>
+            <text class="cn-you" id="cn-you-3" x="100" y="85">you</text>
+            <text class="cn-text" id="cn-text-1" x="60" y="28">1</text>
+            <text class="cn-text" id="cn-text-2" x="20" y="103">2</text>
+            <text class="cn-text" id="cn-text-3" x="100" y="103">3</text>
+          </svg>
+          <span class="cluster-info" id="cluster-info">connecting&hellip;</span>
+        </div>
+      </aside>
+
+      <div id="canvas-wrap">
+        <canvas id="canvas"></canvas>
+        <div id="coords" class="coords"></div>
+        <div id="toast" class="toast" hidden></div>
+      </div>
+
+      <aside class="side side-right">
+        <div class="panel-inner">
+          <span class="panel-label">distributed by design</span>
+          <p class="side-description">Every replica embeds a Raft node. Writes forward to the leader; reads serve from any node.</p>
+          <div class="tech-stack">
+            <span class="tech-tag">Rust</span>
+            <span class="tech-tag">Raft consensus</span>
+            <span class="tech-tag">WebSocket</span>
+            <span class="tech-tag">Docker</span>
+          </div>
+          <a class="gh-link" href="https://github.com/cacdu/gambas" target="_blank" rel="noreferrer">↗ source on github</a>
+        </div>
+      </aside>
     </main>
 
     <footer>
@@ -25,7 +62,6 @@
       <div class="statusbar">
         <span id="cooldown" class="cooldown"></span>
         <span id="node" class="node"></span>
-        <a href="https://github.com/cacdu/gambas" target="_blank" rel="noreferrer">source</a>
       </div>
     </footer>
 

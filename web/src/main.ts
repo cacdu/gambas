@@ -3,6 +3,23 @@ import { connectStream, fetchStatus, paint } from "./net";
 import { Renderer } from "./render";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
+
+// Keep canvas-wrap perfectly square, independent of flex/aspect-ratio quirks. The
+// side panels are laid out by CSS (and hidden by the media query on narrow
+// viewports), so measuring them here keeps the breakpoint in one place: when they
+// are hidden their offsetWidth is 0 and the square grows to the full width.
+const canvasWrap = document.getElementById("canvas-wrap") as HTMLDivElement;
+const mainEl = canvasWrap.parentElement as HTMLElement;
+const sideEls = Array.from(document.querySelectorAll<HTMLElement>("main > .side"));
+function sizeCanvasWrap() {
+  const sides = sideEls.reduce((sum, el) => sum + el.offsetWidth, 0);
+  const size = Math.max(0, Math.min(mainEl.clientHeight, mainEl.clientWidth - sides));
+  canvasWrap.style.width = size + "px";
+  canvasWrap.style.height = size + "px";
+}
+new ResizeObserver(sizeCanvasWrap).observe(mainEl);
+sizeCanvasWrap(); // size before Renderer reads clientWidth
+
 const paletteEl = document.getElementById("palette")!;
 const cooldownEl = document.getElementById("cooldown")!;
 const nodeEl = document.getElementById("node")!;
@@ -133,6 +150,20 @@ setInterval(() => {
   }
 }, 100);
 
+function updateClusterViz(myNodeId: number, leaderId: number | null): void {
+  for (const id of [1, 2, 3]) {
+    document.getElementById(`cn-${id}`)?.classList.toggle("leader", id === leaderId);
+    document.getElementById(`cn-text-${id}`)?.classList.toggle("leader", id === leaderId);
+    document.getElementById(`cn-you-${id}`)?.classList.toggle("visible", id === myNodeId);
+  }
+  const infoEl = document.getElementById("cluster-info");
+  if (infoEl) {
+    infoEl.innerHTML = leaderId
+      ? `node <strong>${leaderId}</strong> is leader`
+      : `election in progress`;
+  }
+}
+
 async function refreshStatus(): Promise<void> {
   const status = await fetchStatus();
   if (!status) return;
@@ -141,6 +172,7 @@ async function refreshStatus(): Promise<void> {
   }
   const role = status.is_leader ? "leader" : `follower of #${status.leader_id ?? "?"}`;
   nodeEl.textContent = `you are on node #${status.node_id} (${role})`;
+  updateClusterViz(status.node_id, status.leader_id ?? null);
 }
 
 refreshStatus();
