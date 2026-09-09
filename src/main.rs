@@ -121,6 +121,9 @@ async fn main() -> Result<()> {
         // raft-kv ticks every 10ms; convert the ms knobs to ticks.
         election_timeout: cfg.election_timeout_ms / 10,
         heartbeat_timeout: cfg.heartbeat_timeout_ms / 10,
+        // 0 keeps the built-in default: a snapshot every 5000 applies, which
+        // rotates the WAL down to the entries it does not cover.
+        compaction_threshold: 0,
     })
     .await?;
 

@@ -5,3 +5,5 @@ web/dist
 # docker-compose reads GAMBAS_INTERNAL_SECRET from here; never commit it
 .env
 .env.*
+# scratch del script de pintado (idx.npy pesa medio MB)
+deploy/.paint-tmp/

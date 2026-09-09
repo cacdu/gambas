@@ -1,0 +1,19 @@
+# The image compiles everything from source inside the builder, so none of the
+# local build output or caches belong in the upload context.
+
+# Rust build artifacts (the ~4 GB culprit) — `cargo build` runs in the builder.
+target/
+
+# Frontend deps and build output — the web stage runs `npm ci` + `npm run build`.
+web/node_modules/
+web/dist/
+
+# Local runtime state, VCS, and scratch — never needed to build the image.
+data/
+.git/
+.gitignore
+.env
+.env.*
+deploy/.paint-tmp/
+**/*.wal
+**/*.log
